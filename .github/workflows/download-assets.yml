@@ -1,4 +1,4 @@
-name: LEGIO - Download 3D Assets
+name: LEGIO - Download FULL 3D Library
 
 on:
   workflow_dispatch:
@@ -8,11 +8,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Kenney 3D assets
+      - name: Download complete Kenney 3D library
         run: |
           set -e
 
-          echo "=== DOWNLOAD LEGIO 3D ASSETS ==="
+          echo "=== LEGIO FULL 3D LIBRARY ==="
 
           git clone \
             --depth 1 \
@@ -23,65 +23,54 @@ jobs:
 
           cd /tmp/kenney
 
-          git sparse-checkout set \
-            3d/city-roads \
-            3d/city-suburban \
-            3d/city-commercial \
-            3d/city-industrial \
-            3d/nature \
-            3d/building
+          echo "Scarico TUTTA la cartella 3D..."
+          git sparse-checkout set 3d
 
           cd "$GITHUB_WORKSPACE"
 
           mkdir -p assets/3d/kenney
 
-          cp -R /tmp/kenney/3d/city-roads assets/3d/kenney/
-          cp -R /tmp/kenney/3d/city-suburban assets/3d/kenney/
-          cp -R /tmp/kenney/3d/city-commercial assets/3d/kenney/
-          cp -R /tmp/kenney/3d/city-industrial assets/3d/kenney/
-          cp -R /tmp/kenney/3d/nature assets/3d/kenney/
-          cp -R /tmp/kenney/3d/building assets/3d/kenney/
+          cp -R /tmp/kenney/3d/. assets/3d/kenney/
 
           echo ""
-          echo "=== MODELLI TROVATI ==="
-
-          find assets/3d/kenney \
-            -type f \
-            \( -iname "*.glb" -o -iname "*.gltf" \) \
-            | sort
+          echo "=== VERIFICA MODELLI ==="
 
           COUNT=$(find assets/3d/kenney \
             -type f \
             \( -iname "*.glb" -o -iname "*.gltf" \) \
             | wc -l)
 
-          echo ""
-          echo "================================"
-          echo "TOTALE MODELLI GLB/GLTF: $COUNT"
-          echo "================================"
+          echo "TOTALE GLB/GLTF: $COUNT"
 
-          if [ "$COUNT" -lt 100 ]; then
-            echo "ERRORE: troppo pochi modelli."
+          if [ "$COUNT" -lt 1000 ]; then
+            echo "ERRORE: libreria incompleta."
             exit 1
           fi
+
+          echo ""
+          echo "=== CATEGORIE ==="
+          find assets/3d/kenney \
+            -mindepth 1 -maxdepth 1 -type d \
+            | sort
 
           echo ""
           echo "=== DIMENSIONE ==="
           du -sh assets/3d/kenney
 
-      - name: Create LEGIO asset pack
+      - name: Create FULL LEGIO asset pack
         run: |
           set -e
 
           cd assets
-          zip -r -q ../LEGIO_3D_ASSET_PACK.zip 3d
+          zip -r -q ../LEGIO_FULL_3D_ASSET_LIBRARY.zip 3d
           cd ..
 
-          ls -lh LEGIO_3D_ASSET_PACK.zip
+          echo "=== PACCHETTO CREATO ==="
+          ls -lh LEGIO_FULL_3D_ASSET_LIBRARY.zip
 
-      - name: Upload LEGIO asset pack
+      - name: Upload FULL asset library
         uses: actions/upload-artifact@v4
         with:
-          name: LEGIO_3D_ASSET_PACK
-          path: LEGIO_3D_ASSET_PACK.zip
+          name: LEGIO_FULL_3D_ASSET_LIBRARY
+          path: LEGIO_FULL_3D_ASSET_LIBRARY.zip
           retention-days: 7
