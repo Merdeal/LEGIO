@@ -8,44 +8,72 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Kenney City Kit Roads
+      - name: Download verified CC0 3D asset packs
         run: |
           set -e
 
-          mkdir -p assets/kenney/roads
+          echo "Clono la libreria asset..."
+          git lfs install
 
-          curl -L --fail --retry 3 \
-            -o /tmp/roads.zip \
-            "https://kenney-assets.itch.io/city-kit-roads/file/kenney_cityKitRoads_1.1.zip"
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/series-ai/jam-ready-assets.git \
+            /tmp/jam-ready-assets
 
-          echo "Controllo archivio..."
-          unzip -t /tmp/roads.zip
+          cd /tmp/jam-ready-assets
 
-          unzip -o /tmp/roads.zip -d assets/kenney/roads
+          git sparse-checkout set \
+            kenney-city-kit-roads/3D/city \
+            kenney-city-kit-suburban/3D/city \
+            kenney-city-kit-industrial/3D/city \
+            kenney-city-kit-commercial/3D/city \
+            kenney-car-kit/3D/vehicles-racing \
+            kenney-building-kit/3D/city
 
-          echo "Modelli trovati:"
-          find assets/kenney/roads \
+          echo "Scarico i file LFS reali..."
+          git lfs pull --include="kenney-city-kit-roads/3D/city,kenney-city-kit-suburban/3D/city,kenney-city-kit-industrial/3D/city,kenney-city-kit-commercial/3D/city,kenney-car-kit/3D/vehicles-racing,kenney-building-kit/3D/city"
+
+          cd "$GITHUB_WORKSPACE"
+
+          mkdir -p assets/3d/kenney
+
+          cp -R /tmp/jam-ready-assets/kenney-city-kit-roads assets/3d/kenney/
+          cp -R /tmp/jam-ready-assets/kenney-city-kit-suburban assets/3d/kenney/
+          cp -R /tmp/jam-ready-assets/kenney-city-kit-industrial assets/3d/kenney/
+          cp -R /tmp/jam-ready-assets/kenney-city-kit-commercial assets/3d/kenney/
+          cp -R /tmp/jam-ready-assets/kenney-car-kit assets/3d/kenney/
+          cp -R /tmp/jam-ready-assets/kenney-building-kit assets/3d/kenney/
+
+          echo ""
+          echo "=== MODELLI 3D TROVATI ==="
+
+          find assets/3d/kenney \
             \( -iname "*.glb" -o -iname "*.gltf" \) \
-            -type f | head -50
+            -type f | sort | head -100
 
-          COUNT=$(find assets/kenney/roads \
+          COUNT=$(find assets/3d/kenney \
             \( -iname "*.glb" -o -iname "*.gltf" \) \
             -type f | wc -l)
 
-          echo "Numero modelli GLB/GLTF: $COUNT"
+          echo ""
+          echo "TOTALE GLB/GLTF: $COUNT"
 
-          if [ "$COUNT" -lt 1 ]; then
-            echo "ERRORE: nessun modello 3D trovato"
+          if [ "$COUNT" -lt 20 ]; then
+            echo "ERRORE: troppo pochi modelli 3D."
             exit 1
           fi
 
-      - name: Create asset pack
+          du -sh assets/3d/kenney
+
+      - name: Create LEGIO asset pack
         run: |
           cd assets
-          zip -r ../LEGIO_ROADS_ASSET_PACK.zip kenney
+          zip -r -q ../LEGIO_3D_ASSET_PACK_KENNEY.zip 3d
+          cd ..
+          ls -lh LEGIO_3D_ASSET_PACK_KENNEY.zip
 
-      - name: Upload asset pack
+      - name: Upload LEGIO asset pack
         uses: actions/upload-artifact@v4
         with:
-          name: LEGIO_ROADS_ASSET_PACK
-          path: LEGIO_ROADS_ASSET_PACK.zip
+          name: LEGIO_3D_ASSET_PACK_KENNEY
+          path: LEGIO_3D_ASSET_PACK_KENNEY.zip
+          retention-days: 7
