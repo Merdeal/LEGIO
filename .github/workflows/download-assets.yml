@@ -1,13 +1,51 @@
-GitHub Actions
-      ↓
-download
-      ↓
-controllo ZIP reale
-      ↓
-unzip
-      ↓
-controllo GLB/GLTF
-      ↓
-controllo numero modelli
-      ↓
-LEGIO_ASSET_PACK.zip
+name: LEGIO - Download 3D Assets
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Kenney City Kit Roads
+        run: |
+          set -e
+
+          mkdir -p assets/kenney/roads
+
+          curl -L --fail --retry 3 \
+            -o /tmp/roads.zip \
+            "https://kenney-assets.itch.io/city-kit-roads/file/kenney_cityKitRoads_1.1.zip"
+
+          echo "Controllo archivio..."
+          unzip -t /tmp/roads.zip
+
+          unzip -o /tmp/roads.zip -d assets/kenney/roads
+
+          echo "Modelli trovati:"
+          find assets/kenney/roads \
+            \( -iname "*.glb" -o -iname "*.gltf" \) \
+            -type f | head -50
+
+          COUNT=$(find assets/kenney/roads \
+            \( -iname "*.glb" -o -iname "*.gltf" \) \
+            -type f | wc -l)
+
+          echo "Numero modelli GLB/GLTF: $COUNT"
+
+          if [ "$COUNT" -lt 1 ]; then
+            echo "ERRORE: nessun modello 3D trovato"
+            exit 1
+          fi
+
+      - name: Create asset pack
+        run: |
+          cd assets
+          zip -r ../LEGIO_ROADS_ASSET_PACK.zip kenney
+
+      - name: Upload asset pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: LEGIO_ROADS_ASSET_PACK
+          path: LEGIO_ROADS_ASSET_PACK.zip
